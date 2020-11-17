@@ -9,4 +9,4 @@
 
 ## Project Links
 
-* [Project Proposal](https://github.com/pjournal/mef04g-rsizlar/ProjectProposal.html)
+* [Project Proposal](ProjectProposal.html)
