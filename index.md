@@ -10,3 +10,7 @@
 ## Project Links
 
 * [Project Proposal](ProjectProposal.html)
+
+## Project Links
+
+* [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/TradingData.xlsx?raw=true)
