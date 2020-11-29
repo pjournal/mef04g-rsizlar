@@ -17,4 +17,4 @@
 
 ## Project Data
 
-* [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/TradingData.xlsx?raw=true)
+* [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/Trading_Data.xlsx?raw=true)
