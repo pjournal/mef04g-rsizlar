@@ -11,6 +11,10 @@
 
 * [Project Proposal](ProjectProposal.html)
 
-## Data
+## Assignment Links
+
+* [Isbike Analysis Assignment](https://erenaltun.shinyapps.io/isbike_project/)
+
+## Project Data
 
 * [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/TradingData.xlsx?raw=true)
