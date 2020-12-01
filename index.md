@@ -10,10 +10,13 @@
 ## Project Links
 
 * [Project Proposal](ProjectProposal.html)
+* [Term Project EDA](TermProjectEDA.html)
+* [Term Project Rmd Code](TermProjectEDA.Rmd)
 
 ## Assignment Links
 
 * [Isbike Analysis Assignment](https://erenaltun.shinyapps.io/isbike_project/)
+* [Isbike Analysis R code](app.R)
 
 ## Project Data
 
