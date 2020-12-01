@@ -1,0 +1,334 @@
+---
+title: "Term Project EDA"
+author: "Rsızlar"
+date: "01/12/2020"
+output:
+  html_document:
+    code_folding: hide
+    number_sections: no
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+---
+
+<style>
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    background-color: #FF0000;
+    color: white
+}
+</style>
+
+```{r setup , warning=FALSE,message=FALSE}
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(readxl)
+library(rio)
+library(stringr)
+library(lubridate)
+library(plotly)
+library(kableExtra)
+library(scales)
+library(cowplot)
+library(plotly)
+```
+
+## Data Cleaning and Overview
+
+Data set contains City Based Monthly Export/Import data of Turkey from 2013 to September 2020. Below code chunk imports data and makes necessary cleaning steps like creating Month and Date variables, translating the content, checking whether if data set contains any missing points.
+
+```{r data import and cleaning, warning=FALSE,message=FALSE}
+#Import Data
+data <- rio::import('https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/Trading_Data.xlsx?raw=true')
+head(data)
+
+#Clean Month and City variables
+data$Month<-str_sub(data$Month,start= 4)
+
+data<-data %>% 
+  separate(City, c("CityCode", "City"),sep = "( - )")
+
+data<-data%>%
+  mutate(Month=case_when(data$Month=="Ocak"~"01",
+                        data$Month=="Subat"~"02",
+                        data$Month=="Mart"~"03",
+                        data$Month=="Nisan"~"04",
+                        data$Month=="Mayis"~"05",
+                        data$Month=="Haziran"~"06",
+                        data$Month=="Temmuz"~"07",
+                        data$Month=="Agustos"~"08",
+                        data$Month=="Eylul"~"09",
+                        data$Month=="Ekim"~"10",
+                        data$Month=="Kasim"~"11",
+                        data$Month=="Aralik"~"12"))
+
+data<-data%>%
+  mutate(TradingType=case_when(data$TradingType=="Ithalat"~"Import",
+                         data$TradingType=="Ihracat"~"Export"))
+
+#Create Date Variable from Year and Month
+data$Date<-paste0(data$Year,as.character("-"),data$Month,as.character("-01"))
+data$Date<-as.Date(data$Date, format="%Y-%m-%d")
+
+sapply(data, function(x) sum(is.na(x)))
+
+```
+
+## Annual Export/Import Figures by Cities
+
+Below code chunk creates 4 summary tables that shows the cities of Turkey with the maximum and minimum import/export figures on a yearly basis. As we are still in 2020, its figures will have data until September.
+
+```{r tables, warning=FALSE,message=FALSE}
+min_yearly_export<-data%>%
+  select(Year,City,TradingType,AmountUSD)%>%
+  filter(TradingType=="Export")%>%
+  group_by(Year,City)%>%
+  summarise("Yearly Amount"=sum(AmountUSD))%>%
+  arrange(Year,`Yearly Amount`)%>%
+  mutate(rn=row_number(Year))%>%
+  filter(rn==1)%>%
+  transmute(Year=as.character(Year),City,`Yearly Amount`)
+
+max_yearly_export<-data%>%
+  select(Year,City,TradingType,AmountUSD)%>%
+  filter(TradingType=="Export")%>%
+  group_by(Year,City)%>%
+  summarise("Yearly Amount"=sum(AmountUSD))%>%
+  arrange(Year,desc(`Yearly Amount`))%>%
+  mutate(rn=row_number(Year))%>%
+  filter(rn==1)%>%
+  transmute(Year=as.character(Year),City,`Yearly Amount`)
+
+min_yearly_import<-data%>%
+  select(Year,City,TradingType,AmountUSD)%>%
+  filter(TradingType=="Import")%>%
+  group_by(Year,City)%>%
+  summarise("Yearly Amount"=sum(AmountUSD))%>%
+  arrange(Year,`Yearly Amount`)%>%
+  mutate(rn=row_number(Year))%>%
+  filter(rn==1)%>%
+  transmute(Year=as.character(Year),City,`Yearly Amount`)
+
+max_yearly_import<-data%>%
+  select(Year,City,TradingType,AmountUSD)%>%
+  filter(TradingType=="Import")%>%
+  group_by(Year,City)%>%
+  summarise("Yearly Amount"=sum(AmountUSD))%>%
+  arrange(Year,desc(`Yearly Amount`))%>%
+  mutate(rn=row_number(Year))%>%
+  filter(rn==1)%>%
+  transmute(Year=as.character(Year),City,`Yearly Amount`)
+
+```
+
+Below table shows the cities with the minimum import figures on a yearly basis. Ardahan occurs 3 times in  the table and its figures are decreasing year by year. In 4 years, from 2013 to 2017, Ardahan's import figures seem to be halved. Also, we can observe an interesting point: 6 out of 8 observations are from Black Sea region. High agricultural operations, small population and rural life may have led to lower import figures.
+
+```{r min_yearly_import, warning=FALSE,message=FALSE}
+
+min_yearly_import %>%
+  kable(caption = "Min Amount of Import by Cities",format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+
+Below table shows the cities with the maximum import figures on a yearly basis. As expected, Istanbul has not left the first place for years. Thanks to being a big metropolis, business opportunities in the city, its consumption culture and population higher than most countries, Istanbul has had the best import figures for years. 
+
+
+```{r max_yearly_import, warning=FALSE, message=FALSE}
+
+max_yearly_import %>%
+  kable(caption = "Max Amount of Import by Cities",format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+
+```
+
+Below table shows the cities with the minimum export figures on a yearly basis. Gümüşhane occurs 4 times in the table. Even the enormous increase in 2014 was not enough get rid of from the last place of the list. An interesting point like the "Minimum Yearly Import Figures": 5 out of 8 observations are from Black Sea region. Similar reasons like small population and rural life may be the reason for that. 
+
+```{r min_yearly_export, warning=FALSE, message=FALSE}
+
+min_yearly_export %>%
+  kable(caption = "Min Amount of Export by Cities",format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+
+Below table shows the cities with the maximum export figures on a yearly basis. As expected, again, Istanbul occurs in all observations when it comes to the maximum export figures. Due to huge population, high workforce, metropolis environment, Istanbul has had the best export figures for years. 
+
+```{r max_yearly_export, warning=FALSE,message=FALSE}
+
+max_yearly_export %>%
+  kable(caption = "Max Amount of Export by Cities",format.args = list(big.mark = ",")) %>%
+  kable_classic(full_width = F, html_font = "Cambria")
+
+```
+
+## Boxplot of City Based Yearly Export/Import Figures
+
+Below code chunk creates a boxplot to compare the distribution of Export/Import figures. Logarithmic normalization was used on `AmountUSD` variable to see distribution clearly. As seen from the below boxplot, export figures have very similar distribution year by year. There is not any drastic change. Import figures have wider distribution than export. This shows us that all cities import products/services and we are dependent on import. Minimum points of export figures seem to higher than import. There may be a domination on export. There is a limited potential for smaller cities and it's not easy to exceed this potential.
+
+```{r boxplot, warning=FALSE,message=FALSE}
+
+data%>%
+  select(Year,City,Month,TradingType,AmountUSD)%>%
+ggplot(aes(x=as.factor(Year), y=log(AmountUSD),color=TradingType)) +
+  geom_boxplot()+
+  theme_test()+
+  theme(legend.position="bottom")+
+  labs(x="Year", y="log of Amount", title = "Yearly Export/Import Distribution Comparison")+ 
+  scale_colour_discrete("Trading Type")
+  
+
+```
+
+## Yearly Overview of Export/Import Figures 
+
+Below code chunk helps us to visualize Export/Import figures monthly for last 2 years (from 2018 Sep to 2020 Sep). Bars show `Balance` which is calculated by the following notation $Export-Import$. Similar trend in Export and Import can be observed easily by the lines. If we look at the last few months, we can see that both import and export figures have a rising trend but balance seems to be affected negatively. If we look at 2020 March, balance is reaching to a peak point (in negative way). This situation shows that Turkey's export operations are adversely affected by Covid-19. Also, there is an interesting point: after a huge decrease in balance; it starts to decrease slowly month by month.
+
+
+```{r yearly, warning=FALSE,message=FALSE}
+
+#p<-data%>%
+#  filter(Date>"2018-08-01")%>%
+#  select(Date,TradingType,AmountUSD)%>%
+#  group_by(Date,TradingType)%>%
+#  summarise(Total=sum(AmountUSD)/1000000000)%>%
+#  pivot_wider(names_from = TradingType, values_from = Total)%>%
+#  mutate(Balance = Export-Import)%>%
+#  ggplot() +
+#  geom_col(aes(x=Date, y=Balance),size = 0.5, color = "#C4961A", fill = "#FFDB6D")+
+#  geom_line(aes(x=Date, y=Export),color="#F8766D",size=1) +
+#  geom_line(aes(x=Date, y=Import),color="#00BFC4",size=1) +
+#  theme_test() + 
+#  labs(x="Date", y="Total Amount (billion dollars)", title = "Yearly Total Export/Import Comparison") + 
+#  theme(legend.position="bottom")
+
+cols<- c("Export"="#F8766D","Import"="#00BFC4","Balance"="#FFDB6D")
+
+p<-data%>%
+  filter(Date>"2018-08-01")%>%
+  select(Date,TradingType,AmountUSD)%>%
+  group_by(Date,TradingType)%>%
+  summarise(Total=round(sum(AmountUSD)/1000000000,2))%>%
+  pivot_wider(names_from = TradingType, values_from = Total)%>%
+  mutate(Balance = Export-Import)%>%
+  ggplot() +
+  geom_col(aes(x=Date, y=Balance, fill = "Balance"),size = 0.5, color = "#C4961A")+
+  geom_line(aes(x=Date, y=Export,color="Export"),size=1) +
+  geom_line(aes(x=Date, y=Import,color="Import"),size=1) +
+  scale_colour_manual(name="Lines",values=cols) + scale_fill_manual(name="Bar",values=cols)+
+  theme_test() + 
+  labs(x="Date", y="Total Amount (billion dollars)", title = "Yearly Total Export/Import Comparison")
+
+ggplotly(p,tooltip = c("Balance","Export","Import","Date"))%>%
+  layout(legend = list(orientation = "h", x = 0.25, y = -0.2))
+
+
+```
+
+## Yearly Pie Charts of Export/Import Share 
+
+When we look at the total USD rates in the first 9 months for 2018, 2019 and 2020, it is seen that imports were 58% in 2018, 54% in 2019 and 57% in 2020. As a result, we notice that the export share in 2019 increased compared to 2018, but decreased again in 2020. The difference between import and export share in 2020 is seen as 14%. It has been observed that imports are more than exports in the last 3 years.
+
+```{r pie charts, warning=FALSE,message=FALSE}
+
+pie19 <- data%>%
+  filter(Month < 10 & Year==2019)%>%
+  select(TradingType,AmountUSD,Year,Month)%>%
+  group_by(TradingType)%>%
+  summarise(Amountusd = sum(AmountUSD))%>%
+  mutate(share=Amountusd/sum(Amountusd)*100.0) %>%
+  arrange(desc(Amountusd))
+
+bpie19 <- ggplot(pie19, aes(x="", y= share, fill=TradingType)) +
+  geom_bar(width = 1, size = 1, color = "white", stat = "identity") +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(share), "%")), 
+              position = position_stack(vjust = 0.5)) +
+    labs(x = NULL, y = NULL, fill = NULL, 
+         title = "Import vs Export for 1:9-2019") +
+    guides(fill = guide_legend(reverse = TRUE)) +
+    scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
+    theme_classic() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          plot.title = element_text(hjust = 0.5, color = "#666666"))
+
+pie20 <- data%>%
+  filter(Month < 10 & Year==2020)%>%
+  select(TradingType,AmountUSD,Year,Month)%>%
+  group_by(TradingType)%>%
+  summarise(Amountusd = sum(AmountUSD))%>%
+  mutate(share=Amountusd/sum(Amountusd)*100.0) %>%
+  arrange(desc(Amountusd))
+
+bpie20 <- ggplot(pie20, aes(x="", y= share, fill=TradingType)) +
+  geom_bar(width = 1, size = 1, color = "white", stat = "identity") +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(share), "%")), 
+              position = position_stack(vjust = 0.5)) +
+    labs(x = NULL, y = NULL, fill = NULL, 
+         title = "Import vs Export for 1:9-2020") +
+    guides(fill = guide_legend(reverse = TRUE)) +
+    scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
+    theme_classic() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          plot.title = element_text(hjust = 0.5, color = "#666666"))
+
+pie18 <- data%>%
+  filter(Month < 10 & Year==2018)%>%
+  select(TradingType,AmountUSD,Year,Month)%>%
+  group_by(TradingType)%>%
+  summarise(Amountusd = sum(AmountUSD))%>%
+  mutate(share=Amountusd/sum(Amountusd)*100.0) %>%
+  arrange(desc(Amountusd))
+
+bpie18 <- ggplot(pie18, aes(x="", y= share, fill=TradingType)) +
+  geom_bar(width = 1, size = 1, color = "white", stat = "identity") +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(share), "%")), 
+              position = position_stack(vjust = 0.5)) +
+    labs(x = NULL, y = NULL, fill = NULL, 
+         title = "Import vs Export for 1:9-2018") +
+    guides(fill = guide_legend(reverse = TRUE)) +
+    scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
+    theme_classic() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          plot.title = element_text(hjust = 0.5, color = "#666666"))
+
+pie17 <- data%>%
+  filter(Month < 10 & Year==2017)%>%
+  select(TradingType,AmountUSD,Year,Month)%>%
+  group_by(TradingType)%>%
+  summarise(Amountusd = sum(AmountUSD))%>%
+  mutate(share=Amountusd/sum(Amountusd)*100.0) %>%
+  arrange(desc(Amountusd))
+
+bpie17 <- ggplot(pie17, aes(x="", y= share, fill=TradingType)) +
+  geom_bar(width = 1, size = 1, color = "white", stat = "identity") +
+    coord_polar("y") +
+    geom_text(aes(label = paste0(round(share), "%")), 
+              position = position_stack(vjust = 0.5)) +
+    labs(x = NULL, y = NULL, fill = NULL, 
+         title = "Import vs Export for 1:9-2017") +
+    guides(fill = guide_legend(reverse = TRUE)) +
+    scale_fill_manual(values = c("#F8766D", "#00BFC4")) +
+    theme_classic() +
+    theme(axis.line = element_blank(),
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          plot.title = element_text(hjust = 0.5, color = "#666666"))
+
+
+
+plot_grid(bpie17,bpie18,bpie19,bpie20)
+
+```
+
+
