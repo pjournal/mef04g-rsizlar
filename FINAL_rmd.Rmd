@@ -1,0 +1,285 @@
+---
+title: "Term Project EDA"
+author: "Rsızlar"
+date: "27/12/2020"
+output: 
+  html_document:
+    df_print: paged
+    toc: true 
+    toc_depth: 2 
+    number_sections: true
+    theme: united 
+    highlight: tango  
+    code_folding: hide
+---
+
+# Key Takeaways
+
+We analyzed Foreign Trade in Turkey and you may find our results below.
+
+* Our goal is to achieve logical results by using monthly import and export data between 2013 and 2020 by visualizing and analyzing their distribution by cities for Turkey.
+
+* We tried to recreate some variables in the data set we used and cleaned the dirty parts. In addition, we were able to obtain more meaningful results by combining the source data we provided from outsource. 
+
+* We visualized the Import and Export figures between 2018 and 2020 and tried to reach the periods and Balance was the least and the greatest.
+
+* We analyzed the Import and Export figures between 2017 and 2020 as a percentage by pie plot method, taking the first 9 months.
+
+* We used the map method by making use of the coordinates we reached in order to examine the Import and Export figures according to the provinces in more detail. Furthermore, in order to better understand the Import and Export distributions in Turkey we visualized by using treemap 7 regions of Turkey.
+
+# Overview and Preparation
+
+We obtained Trading data of Turkey between 2013 and 2020 from TÜİK. Raw data contains 14935 rows and 7 variables.
+
+Objectives of this project is as follows:
+
+* Cleaning dirty data and analyzing foreign trade data of Turkey.
+* Visualizing data to extract insights.
+* Creating a map to show Trade balance city by city.
+* Creating a treemap to show annual share of Export/Import based on geographical regions' of Turkey.
+* Creating tables with population data.
+
+You may find required libraries below:
+
+```{r setup, warning=FALSE,message=FALSE}
+
+library(devtools)
+library(leaflet)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(rio)
+library(leaflet)
+library(shiny)
+library(treemap)
+library(d3treeR)
+library(plotly)
+library(ggmap)
+library(leaflet.extras)
+
+```
+
+We have some NA rows in Region column because of Non-specified City information. Other columns are non-null so, we can start to analyze our data.
+
+```{r preprocess, warning=FALSE,message=FALSE}
+
+githubURL <- "https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/data.RData?raw=true"
+load(url(githubURL))
+
+#Clean Month and City variables
+data$Month<-str_sub(data$Month,start= 4)
+
+data<-data %>% 
+  separate(City, c("CityCode", "City"),sep = "( - )")
+
+data<-data%>%
+  mutate(Month=case_when(data$Month=="Ocak"~"01",
+                         data$Month=="Subat"~"02",
+                         data$Month=="Mart"~"03",
+                         data$Month=="Nisan"~"04",
+                         data$Month=="Mayis"~"05",
+                         data$Month=="Haziran"~"06",
+                         data$Month=="Temmuz"~"07",
+                         data$Month=="Agustos"~"08",
+                         data$Month=="Eylul"~"09",
+                         data$Month=="Ekim"~"10",
+                         data$Month=="Kasim"~"11",
+                         data$Month=="Aralik"~"12"))
+
+data<-data%>%
+  mutate(TradingType=case_when(data$TradingType=="Ithalat"~"Import",
+                               data$TradingType=="Ihracat"~"Export"))
+
+#Create Date Variable from Year and Month
+data$Date<-paste0(data$Year,as.character("-"),data$Month,as.character("-01"))
+data$Date<-as.Date(data$Date, format="%Y-%m-%d")
+
+data<-left_join(data,reg)
+
+data.frame(Total_Missing=sapply(data,function(x){sum(is.na(x))}))
+
+turkceden_ingilizceye <- function(dataset){
+  turkce_harfler<- c("Ç","Ş","Ğ","İ","Ü","Ö","ç","ş","ğ","ı","ü","ö")
+  ingilizce_harfler<- c("C","S","G","I","U","O","c","s","g","i","u","o")
+  dataset=mgsub(turkce_harfler,ingilizce_harfler,dataset)
+  return(dataset)
+}
+
+
+mgsub <- function(pattern, replacement, x, ...) {
+  n = length(pattern)
+  if (n != length(replacement)) {
+    stop("pattern and replacement do not have the same length.")
+  }
+  result = x
+  for (i in 1:n) {
+    result <- gsub(pattern[i],replacement[i],result)
+  }
+  return(result)
+}
+
+tur@data$NAME_1 <- turkceden_ingilizceye(tur@data$NAME_1 )
+tur@data$NAME_1 <- gsub("K. Maras", "Kahramanmaras",tur@data$NAME_1 )
+tur@data$NAME_1 <- gsub("Kinkkale","Kirikkale",tur@data$NAME_1 )
+tur@data$NAME_1 <- gsub("Zinguldak", "Zonguldak", tur@data$NAME_1 )
+tur@data$NAME_1 <- gsub("Afyon","Afyonkarahisar", tur@data$NAME_1 )
+
+tur@data$NAME_1 <- toupper(tur@data$NAME_1) 
+
+data <-data %>% left_join(koordinat,by=c("City"))   
+
+data_mean <- data  %>% 
+  filter(Year>=2018)%>%
+  select(City,TradingType,AmountUSD,LONGITUDE,LATITUDE)%>%
+  group_by(City,TradingType,LONGITUDE,LATITUDE) %>% 
+  summarise(AmountUSD=sum(AmountUSD))%>%
+  pivot_wider(names_from = TradingType, values_from = AmountUSD)%>%
+  mutate(Balance=round((Export-Import)/1000000,2))%>%
+  select(City,LONGITUDE,LATITUDE,Balance)
+
+tur@data <- tur@data%>%left_join(data_mean,by=c("NAME_1"="City"))
+
+```
+
+
+# Data Analysis
+
+## Analyzing Balance Trend
+
+This code chunk produces an interactive line and bar plot that shows Export, Import and Balance figures. You may calculate Balance by the following notation  $Export-Import$. Similar trend in Export and Import can be observed easily by the lines. If we look at the last few months, we can see that both import and export figures have a rising trend but balance seems to be affected negatively. If we look at 2020 March, balance is reaching to a peak point (in negative way). This situation shows that Turkey's export operations are adversely affected by Covid-19. Also, there is an interesting point: after a huge decrease in balance; it starts to decrease slowly month by month.
+
+```{r, warning=FALSE,message=FALSE}
+
+cols<- c("Export"="#F8766D","Import"="#00BFC4","Balance"="#FFDB6D")
+
+p<-data%>%
+  filter(Date>"2018-08-01")%>%
+  select(Date,TradingType,AmountUSD)%>%
+  group_by(Date,TradingType)%>%
+  summarise(Total=round(sum(AmountUSD)/1000000000,2))%>%
+  pivot_wider(names_from = TradingType, values_from = Total)%>%
+  mutate(Balance = Export-Import)%>%
+  ggplot() +
+  geom_col(aes(x=Date, y=Balance, fill = "Balance"),size = 0.5, color = "#C4961A")+
+  geom_line(aes(x=Date, y=Export,color="Export"),size=1) +
+  geom_line(aes(x=Date, y=Import,color="Import"),size=1) +
+  scale_colour_manual(name="Lines",values=cols) + scale_fill_manual(name="Bar",values=cols)+
+  theme_test() + 
+  labs(x="Date", y="Total Amount (billion dollars)", title = "Yearly Total Export/Import Comparison")
+
+ggplotly(p,tooltip = c("Balance","Export","Import","Date"))%>%
+  layout(legend = list(orientation = "h", x = 0.25, y = -0.2))
+
+```
+
+## Analyzing Balance by Turkey Map
+
+This code chunk produces an interactive map that shows Balance figure from 2018 to September 2020. It's easy to observe that big municipalities like Istanbul, Ankara and Adana have negative balance, but in the same time, Bursa, İzmir and Antalya have positive balance. So not all of the big municipalities have the same direction based on balance figure. We would expect Kocaeli to have a positive balance due to the plants that located in the city but It seems like there is a huge negative gap between Export and Import figures for the city. Istanbul has a negative balance which is an outlier (8 times worse than Ankara). Due to the high industry operations, Gaziantep have a good positive balance figure. Denizli has a positive balance figure, Home textile producers are very popular in Denizli and this industry environment helps city to have higher export figures.
+
+```{r cars, warning=FALSE,message=FALSE}
+
+
+labels <- sprintf("<strong>%s</strong><br/>%s $ ",tur@data$NAME_1,prettyNum(tur@data$Balance, format = "f", big.mark = ".",decimal.mark ="," )
+) %>% lapply(htmltools::HTML)
+
+bins <- c(-Inf,-15000, -5000, 0, 1000, 3000, 5000, 10000)
+pal <- colorBin("viridis", domain =tur@data$Balance, bins = bins)
+
+leaflet(tur)  %>% 
+  addProviderTiles("Stamen.TonerBackground", group = "Terrain")%>%
+  addProviderTiles("CartoDB.DarkMatterNoLabels", group = "CartoDB"  ) %>% 
+  addProviderTiles("Esri.OceanBasemap", group = "Esri") %>% 
+  addPolygons(smoothFactor = 0.3, fillOpacity = 10,weight = 2,
+              opacity = 1,color = "white",
+              dashArray = "3",
+              highlight = highlightOptions(stroke = 2,
+                                           weight = 4,
+                                           color = "#666",
+                                           dashArray = NULL,
+                                           fillOpacity = 0.7,
+                                           bringToFront = TRUE),fillColor = ~pal(Balance),label=labels,labelOptions = labelOptions(
+                                             style = list("font-weight" = "normal", padding = "3px 8px"),
+                                             textsize = "15px",
+                                             direction = "auto")) %>%
+  addLegend(pal = pal, values = ~Balance, opacity = 1.0) %>%
+  
+  addLayersControl(baseGroups = c( "CartoDB", "Esri","Terrain")) %>% 
+  setView(lng = 33.243322, lat =	41.963745, zoom =5.4)%>% addSearchOSM()%>% addReverseSearchOSM()%>% addResetMapButton()
+
+```
+
+## Annual Region Based Export/Import Distribution
+
+This code chunk produces an interactive treemap that shows total Export and Import figure distributions. This plot helps us to drill-down from Region to Trading type and Year. These are geographical regions of Turkey: Marmara Region, Aegean Region, Southeastern Anatolia Region, Central Anatolia Region, Mediterranean Region, Eastern Anatolia Region, Black Sea Region. It's easy to observe that we have higher Export figures in Southeastern Anatolia and Eastern Anatolia Regions. People in these regions are harvesting their own food and also there is not much demand on high tech products. These may be the reason of lower Import figures. As expected, Marmara region has the biggest area in this figure. Also we can observe that all years have close amount of areas. There are not huge changes on annual basis.
+
+```{r pressure,warning=FALSE,message=FALSE}
+
+tm_data<-data%>%
+  select(Year,Region,TradingType,AmountUSD)%>%
+  group_by(Year,Region,TradingType)%>%
+  summarise(Total=sum(AmountUSD)/1000000)%>% 
+  filter(is.na(Region)==FALSE)
+
+d3tree3(treemap(tm_data, index = c("Region","TradingType","Year"),vSize="Total",
+              palette="Set3",vColor="Pop",
+              title="Annual Region Based Export/Import Distribution"),rootname = "Region")
+
+```
+
+## Metrics per Population 
+
+This code chunk produces several tables to show us Trading figures per person in 2019. These tables are sorted according to the metrics we created. 
+
+```{r, warning=FALSE,message=FALSE}
+
+total_data<-data%>%
+    filter(Year==2019)%>%
+    select(City,TradingType,AmountUSD)%>%
+    group_by(City,TradingType)%>%
+    summarise(Amount = sum(AmountUSD))%>%
+    pivot_wider(names_from = TradingType, values_from = Amount,values_fill = 0)
+
+table_export<-left_join(total_data,pop)%>%
+    select(City,Export,Pop,MenPop,WomenPop)%>%
+    mutate(ExportPP = round(Export/Pop,2),
+           WomenRatio = round(WomenPop/(WomenPop+MenPop),2))%>%
+    arrange(desc(ExportPP))
+
+table_import<-left_join(total_data,pop)%>%
+    select(City,Import,Pop,MenPop,WomenPop)%>%
+    mutate(ImportPP = round(Import/Pop,2),
+           WomenRatio = round(WomenPop/(WomenPop+MenPop),2))%>%
+    arrange(desc(ImportPP))
+
+table_balance<-left_join(total_data,pop)%>%
+    select(City,Export,Import,Pop,MenPop,WomenPop)%>%
+    mutate(BalancePP = round((Import-Export)/Pop,2),
+           WomenRatio = round(WomenPop/(WomenPop+MenPop),2))%>%
+    arrange(desc(BalancePP))%>%
+    select(City,Export,Import,Pop,BalancePP,WomenRatio)
+
+```
+
+
+Below table gives 2019 Trading figures sorted by Export amount per Person for each city. First 5 cities have huge industry operations and their Export metrics are better than other cities.
+
+```{r}
+
+table_export
+
+```
+Below table gives 2019 Trading figures sorted by Import amount per Person for each city. Cities in the first five rows changed. Karabük and Çorum took their places here. Due to the low population Import per Person metric seems to be high. 
+
+```{r}
+
+table_import
+
+```
+
+Below table gives 2019 Trading figures sorted by Balance amount per Person for each city. Countries with low population have higher Balance per Person value. Some of these cities have bigger industry operations than their population size.
+
+```{r}
+
+table_balance
+
+```
