@@ -12,6 +12,8 @@
 * [Project Proposal](ProjectProposal.html)
 * [Term Project EDA](TermProjectEDA.html)
 * [Term Project Rmd Code](TermProjectEDA.Rmd)
+* [Term Project Final Rmd Code](FINAL_rmd.Rmd)
+* [Term Project Final Report](FINAL_rmd.html)
 
 ## Assignment Links
 
