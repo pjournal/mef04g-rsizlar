@@ -23,3 +23,7 @@
 ## Project Data
 
 * [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/Trading_Data.xlsx?raw=true)
+
+## Youtube_Link_Teaser
+
+* [Youtube Link Teaser](YoutubeLink_Presentation_Teaser.html)
