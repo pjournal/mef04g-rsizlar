@@ -7,6 +7,20 @@
 * [Eren Melih Altun](https://pjournal.github.io/mef04-erenaltunn/)
 * [Taylan Polat](https://pjournal.github.io/mef04-taylan95/)
 
+## Key Takeaways of the Project
+
+We analyzed Foreign Trade in Turkey and you may find our results below.
+
+* Our goal is to achieve logical results by using monthly import and export data between 2013 and 2020 by visualizing and analyzing their distribution by cities for Turkey.
+
+* We tried to recreate some variables in the data set we used and cleaned the dirty parts. In addition, we were able to obtain more meaningful results by combining the source data we provided from outsource.
+
+* We visualized the Import and Export figures between 2018 and 2020 and tried to reach the periods and Balance was the least and the greatest.
+
+* We analyzed the Import and Export figures between 2017 and 2020 as a percentage by pie plot method, taking the first 9 months.
+
+* We used the map method by making use of the coordinates we reached in order to examine the Import and Export figures according to the provinces in more detail. Furthermore, in order to better understand the Import and Export distributions in Turkey we visualized by using treemap 7 regions of Turkey.
+
 ## Project Links
 
 * [Project Proposal](ProjectProposal.html)
