@@ -1,11 +1,5 @@
 # Welcome to Rsızlar Group's Progress Journal
 
-    <iframe width="560" height="315"
-src="https://www.youtube.com/watch?v=RRgXk_IhFMY" 
-frameborder="0" 
-allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" 
-allowfullscreen></iframe>
-
 ## Group Members
 
 * [Ali Altıntaş](https://pjournal.github.io/mef04-alialtintas/)
@@ -48,6 +42,6 @@ We analyzed Foreign Trade in Turkey and you may find our results below.
 
 * [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/data.RData?raw=true)
 
-## Youtube_Link_Teaser
+## Project Presentation Teaser Youtube Link
 
 * [Youtube Link Teaser](https://www.youtube.com/watch?v=RRgXk_IhFMY)
