@@ -11,9 +11,13 @@
 
 * [Project Proposal](ProjectProposal.html)
 * [Term Project EDA](TermProjectEDA.html)
-* [Term Project Rmd Code](TermProjectEDA.Rmd)
-* [Term Project Final Rmd Code](FINAL_rmd.Rmd)
+* [Term Project EDA Rmd Code](TermProjectEDA.Rmd)
+* [Term Project Final Report Rmd Code](FINAL_rmd.Rmd)
 * [Term Project Final Report](FINAL_rmd.html)
+* [Term Project Presentation Rmd Code](presentationfinal.Rmd)
+* [Term Project Presentation Report](presentationfinal.html)
+* [Term Project Shiny Code](ShinyFinal.R)
+* [Term Project Shiny App](https://erenaltun.shinyapps.io/TradingAnalysisDashboard/)
 
 ## Assignment Links
 
@@ -22,7 +26,7 @@
 
 ## Project Data
 
-* [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/Trading_Data.xlsx?raw=true)
+* [Data set](https://github.com/pjournal/mef04g-rsizlar/blob/gh-pages/Data/data.RData?raw=true)
 
 ## Youtube_Link_Teaser
 
